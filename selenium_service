@@ -1,0 +1,29 @@
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+
+class SeleniumService():
+
+    def __init__(self):
+        options = webdriver.ChromeOptions()
+        options.headless(True)
+        self.service = Service(ChromeDriverManager().install())
+        self.driver = webdriver.Chrome(service=self.service)
+
+    def close(self):
+        self.driver.quit()
+
+    def get_url(self, url):
+        try:
+            self.driver.get(url)
+            return True
+        except:
+            return False
+
+    
+    def get_element_by_xpath(self, xpath):
+        try:
+            return self.driver.find_element(By.XPATH, xpath)
+        except:
+            return None
