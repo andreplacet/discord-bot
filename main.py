@@ -6,12 +6,16 @@ import sys
 import requests
 import json
 import consts
+from league_of_legends import LeagueLegends
 
 
 ##### configuração do bot #####
 intents = discord.Intents(messages=True, guilds=True, members=True)
 intents.message_content = True
 client = DiscordClient(intents).get_client()
+
+##### instanciamento de classes #####
+lol = LeagueLegends()
 
 ###### serviços do bot #####
 @client.event
@@ -33,13 +37,21 @@ async def patch_notes(ctx):
 @client.command(name='summoner', help='Retorna informações sobre um invocador do League of Legends')
 async def summoner(ctx, *arg):
   comprehension = '%20'.join(arg)
-  response = requests.get(f'{consts.LOLAPI_BASE_URL}/lol/summoner/v4/summoners/by-name/{comprehension}', headers={'X-Riot-Token': consts.RIOT_API_KEY})
-  if response.status_code == 200:
-    json_response = json.loads(response.text)
-    embed = discord.Embed(description=f'Level: {json_response["summonerLevel"]}', title=json_response["name"])
-    embed.set_thumbnail(url=f'http://ddragon.leagueoflegends.com/cdn/13.8.1/img/profileicon/{json_response["profileIconId"]}.png')
+  json_response = await lol.get_summoner_profile(comprehension)
+  embed = discord.Embed(description=f'Level: {json_response["level"]}', title=json_response["summoner_name"])
+  embed.set_thumbnail(url=f'http://ddragon.leagueoflegends.com/cdn/13.8.1/img/profileicon/{json_response["profile_icon_id"]}.png')
+  embed = discord.Embed(description=f'Invocador não encontrado', title=':/')
+  await ctx.send(embed=embed)
+
+@client.command(name='champion', help='Retorna informações sobre um campeão do League of Legends')
+async def champion(ctx, arg):
+  info = await lol.get_champion_info(arg)
+  if not info:
+    embed = discord.Embed(description=f'Campeão não encontrado', title=':/')
   else:
-    embed = discord.Embed(description=f'Invocador não encontrado', title=':/')
+    embed = discord.Embed(description=f'{info["data"][arg.capitalize()]["lore"]}', title=arg.capitalize())
+    embed.set_thumbnail(url=f'http://ddragon.leagueoflegends.com/cdn/13.8.1/img/champion/{info["data"][arg.capitalize()]["image"]["full"]}')
+
   await ctx.send(embed=embed)
 
 
@@ -58,8 +70,6 @@ async def league_of_legends_error(ctx, error):
 		await ctx.send('Campeão não encontrado. Tente novamente.')
 
 ##### fim league of legends #####
-
-
 @client.command(name='familia')
 async def familia(ctx):
   description = consts.TESTO_FAMILIA
@@ -72,5 +82,19 @@ async def familia(ctx):
 async def familia_error(ctx, error):
   if isinstance(error, commands.BadArgument):
     await ctx.send('erro ao enviar o comando')
+
+@client.command(name='fabio')
+async def fabio(ctx):
+  file = discord.File("D:/dev/alpha-bot/img/fabinho-legal.jpg", filename="fabinho-legal.jpg")
+  embed = discord.Embed(description='Fábio é um cara muito legal', title='Fábio')
+  embed.set_image(url='attachment://fabinho-legal.jpg')
+  await ctx.send(embed=embed, file=file)
+
+@client.command(name='nadamais')
+async def nadamais(ctx):
+  file = discord.File("D:/dev/alpha-bot/img/fabinho.jpg", filename="fabinho.jpg")
+  embed = discord.Embed(description='QUE UM TILTE', title='Nada mais, nada menos...')
+  embed.set_image(url='attachment://fabinho-legal.jpg')
+  await ctx.send(embed=embed, file=file)
 
 client.run(consts.DISCORD_TOKEN)
