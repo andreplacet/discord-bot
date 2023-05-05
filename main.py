@@ -1,18 +1,22 @@
 import discord
+from discord import Permissions
 from discord.ext import commands
 from client	import DiscordClient
-import os
-import sys
 import requests
 import json
 import consts
+import spotipy
+from spotipy.client import Spotify
+from spotipy.oauth2 import SpotifyClientCredentials
 from league_of_legends import LeagueLegends
 
 
 ##### configuração do bot #####
 intents = discord.Intents(messages=True, guilds=True, members=True)
 intents.message_content = True
-client = DiscordClient(intents).get_client()
+permissions = Permissions(permissions=3145728)
+client = DiscordClient(intents=intents, permissions=permissions).get_client()
+sp = Spotify(auth_manager=SpotifyClientCredentials(client_id=consts.SPOTIFY_CLIENT_ID, client_secret=consts.SPOTIFY_CLIENT_SECRET))
 
 ##### instanciamento de classes #####
 lol = LeagueLegends()
@@ -25,6 +29,40 @@ async def on_ready():
 @client.command(name='ping')
 async def hello(ctx):
   await ctx.send('Pong!')
+
+                
+@client.command(name='play', help='Toca uma música do Spotify')
+async def play(ctx, *track_name):
+    voice_client = None
+    track_name = ' '.join(track_name)
+    voice_channel = ctx.author.voice.channel
+    if voice_channel:
+        try:
+            voice_client = await voice_channel.connect()
+        except discord.errors.ClientException:
+            voice_client = ctx.author.voice.client
+            channel = voice_client.channel
+
+        if voice_client.is_playing():
+            voice_client.stop()
+
+        try:
+            results = sp.search(q=track_name, limit=1, type='track')
+            track_uri = results['tracks']['items'][0]['uri']
+            source = await discord.FFmpegOpusAudio.from_probe(track_uri)
+            voice_client.play(source, after=lambda e: print('Player error: %s' % e) if e else None)
+            await ctx.send(f'Now playing: {url}')
+        except Exception as e:
+            await ctx.send(f'Error: {str(e)}')
+
+@client.command(name='stop', help='Stops and disconnects the bot from voice')
+async def stop(ctx):
+    # Stop playback and disconnect from the voice channel
+    voice_client = ctx.guild.voice_client
+    if voice_client.is_playing():
+        voice_client.stop()
+    await voice_client.disconnect()
+
 
 ##### league of legends #####
 @client.command(name='patch', help='Retorna o link do último patch notes')
@@ -39,6 +77,7 @@ async def summoner(ctx, *arg):
   comprehension = '%20'.join(arg)
   json_response = await lol.get_summoner_profile(comprehension)
   embed = discord.Embed(description=f'Level: {json_response["level"]}', title=json_response["summoner_name"])
+  
   embed.set_thumbnail(url=f'http://ddragon.leagueoflegends.com/cdn/13.8.1/img/profileicon/{json_response["profile_icon_id"]}.png')
   embed = discord.Embed(description=f'Invocador não encontrado', title=':/')
   await ctx.send(embed=embed)
