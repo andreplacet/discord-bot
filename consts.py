@@ -14,6 +14,7 @@ SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 TESTO_FAMILIA = f"Essa é a familia, e nunca deixara de ser"
 
 LOLAPI_BASE_URL = 'https://br1.api.riotgames.com'
+LOL_MATCH_AMERICA_BASE_URL = 'https://americas.api.riotgames.com'
 PATCH_NOTES_URL = 'https://www.leagueoflegends.com/pt-br/news/tags/patch-notes/'
 LAST_PATCH_NOTE = '//*[@id="gatsby-focus-wrapper"]/div/div[2]/div/div[1]/div/ol/li[0]/a'
 
