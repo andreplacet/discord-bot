@@ -10,6 +10,7 @@ class LeagueLegends:
     def __init__(self):
         self.patch_notes_url = 'https://www.leagueoflegends.com/pt-br/news/tags/patch-notes/'
         self.api_base_url = consts.LOLAPI_BASE_URL
+        self.api_match_base_url = consts.LOL_MATCH_AMERICA_BASE_URL
         self.api_key = os.getenv('RIOT_API_KEY')
         self.http_client = HttpClient()
 
@@ -50,6 +51,39 @@ class LeagueLegends:
         json_response = await self.http_client.get_with_headers(url=url, headers={'X-Riot-Token': self.api_key})
         return json_response
 
+    async def get_last_match_info_by_name(self, summoner_name):
+        """
+        Retorna informações sobre a última partida de um invocador do League of Legends
+
+        Args:
+            summoner_name (string): nome do invocador a ser buscado
+
+        Returns:
+            json: json com as informações da última partida do invocador
+        """
+
+        summoner_info = await self.get_summoner_info_by_name(summoner_name)
+
+        url = f'{self.api_match_base_url}/lol/match/v5/matches/by-puuid/{summoner_info["puuid"]}/ids?start=0&count=20'
+        match_response = await self.http_client.get_with_headers(url=url, headers={'X-Riot-Token': self.api_key})
+
+        url = f'{self.api_match_base_url}/lol/match/v5/matches/{match_response[0]}'
+        json_response = await self.http_client.get_with_headers(url=url, headers={'X-Riot-Token': self.api_key})
+
+        game_info = {
+            'summoner_info': summoner_info,
+            'game_mode': json_response['info']['gameMode'],
+            'game_id': json_response['metadata']['matchId'],
+            'participants': [],
+            'summoner_stats': []
+        }
+
+        [game_info['participants'].append({'name': participant['summonerName'], 'champion': participant['championName']}) for participant in json_response['info']['participants']]
+
+        [game_info['summoner_stats'].append({'kills': participant['kills'], 'deaths': participant['deaths'], 'assists': participant['assists'], 'champion': participant['championName'], 'kda': participant['challenges']['kda']}) for participant in json_response['info']['participants'] if participant['summonerName'] == summoner_info['name']]
+
+        return game_info
+
     async def get_champion_mastery(self, summoner_id):
         url = f'{self.api_base_url}/lol/champion-mastery/v4/champion-masteries/by-summoner/{summoner_id}'
         json_response = await self.http_client.get_with_headers(url=url, headers={'X-Riot-Token': self.api_key})
@@ -73,14 +107,15 @@ class LeagueLegends:
         Returns:
             json: json com as informações do invocador e dos 3 campeões com maior maestria
         """
-        summoner_info = await self.get_summoner_info_by_name(summoner_name)
-        champion_mastery = await self.get_champion_mastery(summoner_info['id'])
+        #champion_mastery = await self.get_champion_mastery(summoner_info['id'])
+
+        summoner_last_match_info = await self.get_last_match_info_by_name(summoner_name)
 
         profile = {
-            'summoner_name': summoner_info['name'],
-            'level': summoner_info['summonerLevel'],
-            'profile_icon_id': summoner_info['profileIconId'],
-            'champions': []
+            'summoner_name': summoner_last_match_info['summoner_info']['name'],
+            'level': summoner_last_match_info['summoner_info']['summonerLevel'],
+            'profile_icon_id': summoner_last_match_info['summoner_info']['profileIconId'],
+            'last_match': summoner_last_match_info
         }
 
         for champion in champion_mastery[:3]:
