@@ -72,6 +72,17 @@ async def patch_notes(ctx):
   await ctx.send(img['href'])
 
 
+@client.command(name='last_match', help='Retorna informações sobre a última partida ranqueada de um invocador')
+async def last_match(ctx, summoner_name):
+  json_response = lol.get_last_match_info_by_name(summoner_name)
+  if not json_response:
+    embed = discord.Embed(description=f'Invocador não encontrado', title=':/')
+    await ctx.send(embed=embed)
+  else:
+    embed = discord.Embed(title=f'Ultima partida de {json_response["summoner_name"]}')
+    embed.set_thumbnail(url=f'http://ddragon.leagueoflegends.com/cdn/13.8.1/img/profileicon/{json_response["profile_icon_id"]}.png')
+
+
 @client.command(name='summoner', help='Retorna informações sobre um invocador do League of Legends')
 async def summoner(ctx, *arg):
   comprehension = '%20'.join(arg)
