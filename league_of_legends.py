@@ -51,6 +51,21 @@ class LeagueLegends:
         json_response = await self.http_client.get_with_headers(url=url, headers={'X-Riot-Token': self.api_key})
         return json_response
 
+    async def get_summoner_rank_by_id(self, summoner_id):
+        """
+        Retorna informações sobre o rank de um invocador do League of Legends
+
+        Args:
+            summoner_id (string): id do invocador a ser buscado
+
+        Returns:
+            json: json com as informações do rank do invocador
+        """
+        url = f'{self.api_base_url}/lol/league/v4/entries/by-summoner/{summoner_id}'
+        json_response = await self.http_client.get_with_headers(url=url, headers={'X-Riot-Token': self.api_key})
+        return json_response
+
+
     async def get_last_match_info_by_name(self, summoner_name):
         """
         Retorna informações sobre a última partida de um invocador do League of Legends
@@ -63,6 +78,7 @@ class LeagueLegends:
         """
 
         summoner_info = await self.get_summoner_info_by_name(summoner_name)
+        summoner_info["rank"] = await self.get_summoner_rank_by_id(summoner_info["id"])
 
         url = f'{self.api_match_base_url}/lol/match/v5/matches/by-puuid/{summoner_info["puuid"]}/ids?start=0&count=20'
         match_response = await self.http_client.get_with_headers(url=url, headers={'X-Riot-Token': self.api_key})
