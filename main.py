@@ -65,22 +65,23 @@ async def stop(ctx):
 
 
 ##### league of legends #####
-@client.command(name='patch', help='Retorna o link do último patch notes')
-async def patch_notes(ctx):
-  response = requests.get(consts.PATCH_NOTES_URL)
-  img = response
-  await ctx.send(img['href'])
-
-
 @client.command(name='last_match', help='Retorna informações sobre a última partida ranqueada de um invocador')
-async def last_match(ctx, summoner_name):
-  json_response = lol.get_last_match_info_by_name(summoner_name)
+async def last_match(ctx, *summoner_name):
+  summoner_name = '%20'.join(summoner_name)
+  json_response = await lol.get_last_match_info_by_name(summoner_name)
   if not json_response:
     embed = discord.Embed(description=f'Invocador não encontrado', title=':/')
     await ctx.send(embed=embed)
   else:
-    embed = discord.Embed(title=f'Ultima partida de {json_response["summoner_name"]}')
-    embed.set_thumbnail(url=f'http://ddragon.leagueoflegends.com/cdn/13.8.1/img/profileicon/{json_response["profile_icon_id"]}.png')
+    game_info = f'RANK: {json_response["summoner_info"]["rank"][0]["tier"]} {json_response["summoner_info"]["rank"][0]["rank"]}\n\ngame_id: {json_response["game_id"]}\ngame_mode: {json_response["game_mode"]}'
+    embed = discord.Embed(description=game_info,title=f'Ultima partida de {json_response["summoner_info"]["name"]}')
+    embed.set_author(name=json_response["summoner_info"]["name"], icon_url=f'http://ddragon.leagueoflegends.com/cdn/13.8.1/img/profileicon/{json_response["summoner_info"]["profileIconId"]}.png')
+    if json_response["summoner_info"]["rank"][0]["tier"] in consts.RANK_ICON.keys():
+      embed.set_thumbnail(url=f'{consts.RANK_ICON_URL[json_response["summoner_info"]["rank"][0]["tier"]]}')
+      embed.thumbnail.height = 100
+      embed.thumbnail.width = 100
+
+    await ctx.send(embed=embed)
 
 
 @client.command(name='summoner', help='Retorna informações sobre um invocador do League of Legends')
@@ -89,7 +90,7 @@ async def summoner(ctx, *arg):
   json_response = await lol.get_summoner_profile(comprehension)
   embed = discord.Embed(description=f'Level: {json_response["level"]}', title=json_response["summoner_name"])
   
-  embed.set_thumbnail(url=f'http://ddragon.leagueoflegends.com/cdn/13.8.1/img/profileicon/{json_response["profile_icon_id"]}.png')
+  embed.set_thumbnail(url=f'http://ddragon.leagueoflegends.com/cdn/13.8.1/img/profileicon/{json_response["profileIconId"]}.png')
   embed = discord.Embed(description=f'Invocador não encontrado', title=':/')
   await ctx.send(embed=embed)
 
@@ -135,7 +136,7 @@ async def familia_error(ctx, error):
 
 @client.command(name='fabio')
 async def fabio(ctx):
-  file = discord.File("D:/dev/alpha-bot/img/fabinho-legal.jpg", filename="fabinho-legal.jpg")
+  file = discord.File(f"{consts.ROOT_DIR}/img/fabinho-legal.jpg", filename="fabinho-legal.jpg")
   embed = discord.Embed(description='Fábio é um cara muito legal', title='Fábio')
   embed.set_image(url='attachment://fabinho-legal.jpg')
   await ctx.send(embed=embed, file=file)
